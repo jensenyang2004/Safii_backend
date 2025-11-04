@@ -3,8 +3,31 @@ from firebase_admin import credentials, auth, firestore
 import os
 import time
 
-cred = credentials.Certificate("/Users/yangjingcheng/Downloads/serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
+try:
+    if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+        # On a server, 'cred' is not needed.
+        firebase_admin.initialize_app()
+        print("Firebase App initialized from environment variable.")
+    else:
+        # Fallback for local testing if the env var isn't set
+        cred_path = "/Users/yangjingcheng/Downloads/serviceAccountKey.json" # <-- !! CHANGE THIS !!
+        if not os.path.exists(cred_path):
+            print(f"Warning: Local credential file not found at {cred_path}")
+            print("Please set GOOGLE_APPLICATION_CREDENTIALS or update this path.")
+            # As a last resort, exit or raise error if not configured
+            raise FileNotFoundError(f"Credential file not found: {cred_path}")
+        
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print(f"Firebase App initialized from local file: {cred_path}")
+
+except ValueError:
+    # This happens if the app is already initialized (e.g., in a test)
+    print("Firebase App was already initialized.")
+except FileNotFoundError as e:
+    print(e)
+    # Handle the error appropriately, maybe exit
+    exit(1)
 
 # Get a client instance for Firestore
 db = firestore.client()
